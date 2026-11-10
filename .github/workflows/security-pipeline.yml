@@ -1,0 +1,49 @@
+name: Security Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  security-pipeline:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Secret scan (TruffleHog)
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          extra_args: --only-verified=false
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: SAST (Bandit)
+        run: |
+          pip install bandit
+          bandit -r app/
+
+      - name: SCA (pip-audit)
+        run: |
+          pip install pip-audit
+          pip-audit -r app/requirements.txt
+
+      - name: Build Docker image
+        run: docker build -t finshield-app:${{ github.sha }} ./app
+
+      - name: Container scan (Trivy)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: finshield-app:${{ github.sha }}
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+
+      - name: Deploy to AWS
+        if: success()
+        run: echo "placeholder — wired up for screenshot 2"
