@@ -14,10 +14,8 @@ jobs:
           fetch-depth: 0
 
       - name: Secret scan (TruffleHog)
-        uses: trufflesecurity/trufflehog@main
-        with:
-          path: ./
-          extra_args: --only-verified=false
+        run: |
+          docker run --rm -v "$PWD:/repo" ghcr.io/trufflesecurity/trufflehog:latest filesystem /repo --fail
 
       - name: Set up Python
         uses: actions/setup-python@v5
